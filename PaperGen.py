@@ -4,6 +4,13 @@ import random
 from PIL import ImageFont, ImageDraw, Image
 import lorem
 
+############
+# SETTINGS #
+############
+
+show_lines = True
+output_blank = True
+
 font_size = 90
 fonts = [ImageFont.truetype('./font.ttf', font_size),
          ImageFont.truetype('./font2.ttf', font_size)]
@@ -42,7 +49,10 @@ for line in lines:
     if (angle <= 95.0 and angle >= 85.0):
         filtered_lines.append(line)
         filtered_mids.append(int((y1+y2)/2))
-        cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        if show_lines:
+            cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        if output_blank:
+            cv2.line(blank_image, (x1, y1), (x2, y2), (255, 0, 0), 2)
     elif (angle <= 5.0 and angle >= 0.0):
         filtered_vertical_x.append(int((x1+x2)/2))
 
@@ -51,18 +61,26 @@ mean_x_start = int(sum(filtered_vertical_x)/len(filtered_vertical_x))
 filtered_mids.sort()
 grouped_mids = []
 
+print(filtered_mids)
+
 group = [filtered_mids[0]]
 for i in range(1, len(filtered_mids)):
-    if filtered_mids[i] - group[-1] <= 30:
+    if filtered_mids[i] - group[-1] <= 26:
         group.append(filtered_mids[i])
     else:
         grouped_mids.append(group)
         group = [filtered_mids[i]]
 grouped_mids.append(group)
 
-for item in grouped_mids:
-    cv2.line(img, (0, int(sum(item)/len(item))),
-             (width, int(sum(item)/len(item))), (0, 255, 0), 2)
+
+if show_lines or output_blank:
+    for item in grouped_mids:
+        if output_blank:
+            cv2.line(blank_image, (0, int(sum(item)/len(item))),
+                     (width, int(sum(item)/len(item))), (255, 255, 255), 2)
+        if show_lines:
+            cv2.line(img, (0, int(sum(item)/len(item))),
+                    (width, int(sum(item)/len(item))), (0, 255, 0, 0.2), 2)
 
 pil_image = Image.fromarray(img)
 draw = ImageDraw.Draw(pil_image)
@@ -95,7 +113,7 @@ def write_text(input_text, index, color=(0, 0, 0)):
 
             if overflow_text != "" or counter == 0:
                 draw.text(
-                    (mean_x_start-random.randint(15, 40), avg),
+                    (mean_x_start-random.randint(0, 5), avg),
                     text,
                     font=fonts[seed],
                     fill=color
