@@ -7,6 +7,8 @@ class Settings:
   outputBlank = True
   fontSize = 90
   fonts = []
+  headerFonts = []
+  subHeaderFonts = []
   colors = []
   randomFontColors = False
   
@@ -24,6 +26,9 @@ class Settings:
     self.randomFontColors = randomFontColors
     for font in fonts:
       self.fonts.append(ImageFont.truetype(font, fontSize))
+      self.headerFonts.append(ImageFont.truetype(font, fontSize))
+      self.subHeaderFonts.append(ImageFont.truetype(font, fontSize))
+      
       if randomFontColors:
         self.colors.append((random.randint(0, 128), random.randint(0, 128), random.randint(0, 128)))
       else:

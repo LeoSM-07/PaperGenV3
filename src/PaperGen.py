@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
 import random
-from PIL import ImageFont, ImageDraw, Image
+from PIL import ImageDraw, Image
 import lorem
+import heapq
+import BisectionSearch
 
 import LineDetection
 from Classes.Settings import Settings
@@ -13,7 +15,7 @@ from Classes.Settings import Settings
 settings = Settings(
     showLines=False,
     outputBlank=True,
-    fontSize=115,
+    fontSize=100,
     fonts=['./assets/font.ttf', './assets/font2.ttf'],
     randomFontColors=False
 )
@@ -25,7 +27,7 @@ settings = Settings(
 print("Hello World!")
 
 # Load the input images
-img = cv2.imread('./input/image2.png')
+img = cv2.imread('./input/image.png')
 # Convert the image to grayscale
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 # Apply a Gaussian blur to the image
@@ -39,7 +41,7 @@ height, width = img.shape[:2]
 blank_image = np.zeros((height, width, 3), np.uint8)
 
 filtered_lines = []
-filtered_vertical_x = []
+filtered_vertical_lines = []
 filtered_mids = []
 
 # Draw the lines on the original image
@@ -55,11 +57,11 @@ for line in lines:
         if settings.outputBlank:
             cv2.line(blank_image, (x1, y1), (x2, y2), (255, 0, 0), 2)
     elif (angle <= 5.0 and angle >= 0.0):
-        filtered_vertical_x.append(int((x1+x2)/2))
-
-mean_x_start = int(sum(filtered_vertical_x)/len(filtered_vertical_x))
-offset_upper_bound = int(mean_x_start*0.2)
-offset_lower_bound = int(mean_x_start*0.08)
+        filtered_vertical_lines.append((int((x1+x2)/2), int((y1+y2)/2)))
+        if settings.showLines:
+            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        if settings.outputBlank:
+            cv2.line(blank_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
 filtered_mids.sort()
 grouped_mids = []
@@ -87,6 +89,8 @@ for group in grouped_lines:
         angles.append(-(np.arctan2(y2-y1, x2-x1) * 180 / np.pi - 0))
     mean = sum(angles)/len(angles)
     group_angles.append(mean)
+    
+
 
 if settings.showLines or settings.outputBlank:
     for item in grouped_mids:
@@ -101,16 +105,18 @@ pil_image = Image.fromarray(img)
 draw = ImageDraw.Draw(pil_image)
 
 index = 0
-
-
 def write_text(input_text, index, color = (0, 0, 0, 220)):
     counter = 0
     full_text = input_text
     overflow_text = ""
     
     while full_text != "":
+        if index >= len(grouped_mids):
+            break
         avg = int(sum(grouped_mids[index])/len(grouped_mids[index]))
         angle = group_angles[index]
+        # Set mean X start to find the x coordinate of the nearest line vertically in the filtered_lines array
+        mean_x_start, mean_y_start = heapq.nsmallest(1, filtered_vertical_lines, key=lambda x: abs(x[1] - avg ))[0]
         if avg > 100:
             seed = random.randint(0, len(settings.fonts)-1)
             font = settings.fonts[seed]
@@ -124,6 +130,7 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
 
             text_length = int(draw.textlength(text, font=font))
 
+            #Bounds for bisection search
             while text_length > (width - mean_x_start):
                 split_text = text.split()
                 overflow_text = split_text[-1]+" "+overflow_text
@@ -135,7 +142,7 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
             if overflow_text != "" or counter == 0:
                 x0, y0, x1, y1 = font.getbbox(text)
                 text_width = x1 - x0
-                text_height = y1 - y0
+                text_height = y1 - y0 + 100
                 
                 image2 = Image.new('RGBA', (text_width, text_height), (0, 0, 128, 0))
                 
@@ -143,19 +150,10 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
                 draw2.text((0, 0), text=text, font=font, fill=settings.colors[seed] if settings.randomFontColors else color)
                 # draw2.line((0, 0, text_width, 0), fill=(0, 255, 0), width=5)
                 image2 = image2.rotate(angle*1.1, expand=True)
-                
-                px, py = (mean_x_start-random.randint(offset_lower_bound, offset_upper_bound)), avg
+                px, py = (mean_x_start+random.randrange(int(mean_x_start*0.05), int(mean_x_start*0.1))), avg
                 sx, sy = image2.size
-                y_offset = 10
+                y_offset = -5
                 pil_image.paste(image2, (px, py-y_offset, px + sx, py-y_offset + sy), image2)
-
-                # draw.text(
-                #     (mean_x_start-random.randint(offset_lower_bound,
-                #      offset_upper_bound), avg),
-                #     text,
-                #     font=font,
-                #     fill=settings.colors[seed] if settings.randomFontColors else color
-                # )
             else:
                 index -= 1
             full_text = full_text.replace(text, "").strip(" ")
@@ -163,13 +161,30 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
         counter += 1
     return index
 
-index = write_text(lorem.paragraph(), index, (0, 0, 255))
-index = write_text(lorem.paragraph(), index, (255, 0, 0))
-index = write_text(lorem.paragraph(), index, (0, 0, 255))
-index = write_text(lorem.paragraph(), index, (255, 0, 0))
-index = write_text(lorem.paragraph(), index, (0, 0, 255))
-index = write_text(lorem.paragraph(), index, (255, 0, 0))
 
+# index = write_text(lorem.paragraph(), index, (0, 0, 255))
+# index = write_text(lorem.paragraph(), index, (255, 0, 0))
+# index = write_text(lorem.paragraph(), index, (0, 0, 255))
+# index = write_text(lorem.paragraph(), index, (255, 0, 0))
+# index = write_text(lorem.paragraph(), index, (0, 0, 255))
+# index = write_text(lorem.paragraph(), index, (255, 0, 0))
+
+with open('./input/message.txt', 'r') as f:
+    textFile = f.read().split('\n')
+
+for text in textFile:
+    if text.startswith("RED: "):
+        text = text.replace("RED: ", "").strip()
+        index = write_text(text, index, (55, 52, 255))
+    elif text.startswith("BLUE: "):
+        text = text.replace("BLUE: ", "").strip()
+        index = write_text(text, index, (255, 33, 33))
+    elif text.startswith("SUMMARY: "):
+        text = text.replace("SUMMARY: ", "").strip()
+        index = write_text(text, index, (0, 0, 0, 240))
+    else:
+        index = write_text(text, index, (0, 0, 0, 240))
+    
 opencv_image = np.array(pil_image)
 final_image = cv2.GaussianBlur(opencv_image, (3, 3), 0)
 
@@ -178,3 +193,4 @@ cv2.imwrite('./output/linesDetectedBlank.jpg', blank_image)
 
 # Display the result
 cv2.imwrite('./output/linesDetected.png', final_image)
+
