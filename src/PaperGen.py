@@ -4,7 +4,6 @@ import random
 from PIL import ImageDraw, Image
 import lorem
 import heapq
-import BisectionSearch
 
 import LineDetection
 from Classes.Settings import Settings
@@ -130,14 +129,37 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
 
             text_length = int(draw.textlength(text, font=font))
 
-            #Bounds for bisection search
-            while text_length > (width - mean_x_start):
-                split_text = text.split()
-                overflow_text = split_text[-1]+" "+overflow_text
-                split_text.pop()
-                text = ' '.join(split_text)
-                text_length = int(draw.textlength(
+            #checks length of String, returns bool True/False
+            def check_length(text, target_width):
+                text_length =  int(draw.textlength(
                     text, font=font))
+                if text_length<=target_width:
+                    return True
+                return False
+
+            #Bisection Search
+            def bisection_overflow(split_text, left, right, target_width):
+                while left <= right:
+                    text = ' '.join(split_text)
+                    #Check if text fits right away
+                    if check_length(text, target_width):
+                        #write the text, it is short enough to fit
+                        return split_text, left, right, target_width
+                    
+                    mid = int((left+right)/2)
+                    overflow_text = split_text[mid:]
+                    split_text = split_text[:mid]
+                    if check_length(split_text): #Too small/ just right
+                        left = mid+1
+                        overflow_text.append(split_text[:int((left+right)/2)])
+                    else: #Too big
+                        right = mid-1
+                        del overflow_text[int((left+right)/2):]
+                    bisection_overflow(overflow_text)
+            split_text=text.split()
+            left = 0
+            right = len(split_text)-1
+            bisection_overflow(split_text, left, right, width-mean_x_start)
 
             if overflow_text != "" or counter == 0:
                 x0, y0, x1, y1 = font.getbbox(text)
