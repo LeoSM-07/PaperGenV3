@@ -27,35 +27,39 @@ print("Hello World!")
 
 #Simple Functions
 #checks length of String, returns bool True/False
-def check_length(text, target_width, font):
-    text_length =  int(draw.textlength(
-        text, font=font))
-    if text_length<=target_width:
-        return True
-    return False
+def length(text, font):
+    return int(draw.textlength(text, font=font))
 
 #Bisection Search
-def bisection_overflow(full_text, left, right, target_width, font):
-    text = ' '.join(full_text)
-    if check_length(text, target_width, font):
-            #write the text, it is short enough to fit
-            return text, ""
-    while left <= right:
-        text = ' '.join(full_text)
-        mid = int((left+right)/2)
-        overflow_text = full_text[mid:]
-        split_text = full_text[:mid]
-        if check_length(text, target_width, font): #Too small/ just right
-            left = mid+1
-            overflow_text.append(split_text[:int((left+right)/2)])
-            print("if", overflow_text)
-        else: #Too big
-            right = mid-1
-            del overflow_text[int((left+right)/2):]
-            print("else", overflow_text,)
-    overflow_text = ' '.join(overflow_text)
-    return text, overflow_text
+def bisect_text(string, width, font):
 
+    #check if text fits right away
+    if length(string, font) <= width:
+        return string, ""
+    
+    #Set up variables
+    words=string.split()
+    start, end = 0, len(words)
+    overflow = ''
+    
+    #Binary search for split points
+    while start < end:
+        mid = (start+end)//2
+        if length(' '.join(words[:mid]), font) <= width:
+            start = mid + 1
+        else:
+            end = mid 
+    # Determine the optimal split point within the chosen range of indices
+    split = start
+    if split > 0 and length(' '.join(words[:split]), font) > width:
+        split -= 1
+    # Construct the text and overflow strings
+    text = ' '.join(words[:split])
+    if split < len(words):
+        overflow = ' '.join(words[split:])
+    else:
+        overflow = ""
+    return text, overflow
 
 # Load the input images
 img = cv2.imread('./input/image.png')
@@ -158,11 +162,9 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
             elif full_text != "":
                 text = overflow_text
                 overflow_text = ""
-            
-            split_text=text.split()
-            left = 0
-            right = len(split_text)-1
-            text, overflow_text = bisection_overflow(split_text, left, right, width - mean_x_start, font)
+    
+            text, overflow_text = bisect_text(text, width - mean_x_start, font)
+
             if overflow_text != "" or counter == 0:
                 x0, y0, x1, y1 = font.getbbox(text)
                 text_width = x1 - x0
