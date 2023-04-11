@@ -140,7 +140,6 @@ draw = ImageDraw.Draw(pil_image)
 
 index = 0
 def write_text(input_text, index, color = (0, 0, 0, 220)):
-    counter = 0
     full_text = input_text
     overflow_text = ""
     
@@ -161,10 +160,11 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
             elif full_text != "":
                 text = overflow_text
                 overflow_text = ""
-    
-            text, overflow_text = bisect_text(text, width - mean_x_start, font)
+                
 
-            if overflow_text != "" or counter == 0:
+            text, overflow_text = bisect_text(text, width - mean_x_start, font)
+            
+            if text != "":
                 x0, y0, x1, y1 = font.getbbox(text)
                 text_width = x1 - x0
                 text_height = y1 - y0 + 100
@@ -183,7 +183,6 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
                 index -= 1
             full_text = full_text.replace(text, "").strip(" ")
         index += 1
-        counter += 1
     return index
 
 
