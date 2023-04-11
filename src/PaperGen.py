@@ -25,6 +25,38 @@ settings = Settings(
 
 print("Hello World!")
 
+#Simple Functions
+#checks length of String, returns bool True/False
+def check_length(text, target_width, font):
+    text_length =  int(draw.textlength(
+        text, font=font))
+    if text_length<=target_width:
+        return True
+    return False
+
+#Bisection Search
+def bisection_overflow(full_text, left, right, target_width, font):
+    text = ' '.join(full_text)
+    if check_length(text, target_width, font):
+            #write the text, it is short enough to fit
+            return text, ""
+    while left <= right:
+        text = ' '.join(full_text)
+        mid = int((left+right)/2)
+        overflow_text = full_text[mid:]
+        split_text = full_text[:mid]
+        if check_length(text, target_width, font): #Too small/ just right
+            left = mid+1
+            overflow_text.append(split_text[:int((left+right)/2)])
+            print("if", overflow_text)
+        else: #Too big
+            right = mid-1
+            del overflow_text[int((left+right)/2):]
+            print("else", overflow_text,)
+    overflow_text = ' '.join(overflow_text)
+    return text, overflow_text
+
+
 # Load the input images
 img = cv2.imread('./input/image.png')
 # Convert the image to grayscale
@@ -126,41 +158,11 @@ def write_text(input_text, index, color = (0, 0, 0, 220)):
             elif full_text != "":
                 text = overflow_text
                 overflow_text = ""
-
-            text_length = int(draw.textlength(text, font=font))
-
-            #checks length of String, returns bool True/False
-            def check_length(text, target_width):
-                text_length =  int(draw.textlength(
-                    text, font=font))
-                if text_length<=target_width:
-                    return True
-                return False
-
-            #Bisection Search
-            def bisection_overflow(split_text, left, right, target_width):
-                while left <= right:
-                    text = ' '.join(split_text)
-                    #Check if text fits right away
-                    if check_length(text, target_width):
-                        #write the text, it is short enough to fit
-                        return split_text, left, right, target_width
-                    
-                    mid = int((left+right)/2)
-                    overflow_text = split_text[mid:]
-                    split_text = split_text[:mid]
-                    if check_length(split_text): #Too small/ just right
-                        left = mid+1
-                        overflow_text.append(split_text[:int((left+right)/2)])
-                    else: #Too big
-                        right = mid-1
-                        del overflow_text[int((left+right)/2):]
-                    bisection_overflow(overflow_text)
+            
             split_text=text.split()
             left = 0
             right = len(split_text)-1
-            bisection_overflow(split_text, left, right, width-mean_x_start)
-
+            text, overflow_text = bisection_overflow(split_text, left, right, width - mean_x_start, font)
             if overflow_text != "" or counter == 0:
                 x0, y0, x1, y1 = font.getbbox(text)
                 text_width = x1 - x0
