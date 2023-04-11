@@ -32,23 +32,21 @@ def length(text, font):
 
 #Bisection Search
 def bisect_text(string, width, font):
-
-    #check if text fits right away
+    # check if text fits right away
     if length(string, font) <= width:
         return string, ""
-    
-    #Set up variables
+    # Set up variables
     words=string.split()
     start, end = 0, len(words)
     overflow = ''
-    
-    #Binary search for split points
+    # Binary search for split points
     while start < end:
         mid = (start+end)//2
         if length(' '.join(words[:mid]), font) <= width:
             start = mid + 1
         else:
             end = mid 
+
     # Determine the optimal split point within the chosen range of indices
     split = start
     if split > 0 and length(' '.join(words[:split]), font) > width:
@@ -91,7 +89,9 @@ for line in lines:
             cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
         if settings.outputBlank:
             cv2.line(blank_image, (x1, y1), (x2, y2), (255, 0, 0), 2)
-    elif (angle <= 5.0 and angle >= 0.0):
+   
+    # if angle is almost 0 and the line's x coordinates are in the first 15% of the page
+    elif (angle <= 5.0 and angle >= -5.0) and (line[0][0]<(width*0.15) and line[0][2]<(width*0.15)):
         filtered_vertical_lines.append((int((x1+x2)/2), int((y1+y2)/2)))
         if settings.showLines:
             cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
@@ -125,7 +125,6 @@ for group in grouped_lines:
     mean = sum(angles)/len(angles)
     group_angles.append(mean)
     
-
 
 if settings.showLines or settings.outputBlank:
     for item in grouped_mids:
