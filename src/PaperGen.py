@@ -148,11 +148,10 @@ def paper_gen(textFile, pageNumber, actually_overflow):
         full_text = input_text
         overflow_text = ""
         text = ""
-        last_line = ""
         
         while full_text != "":
             if index >= len(grouped_mids):
-                return (999999999, overflow_text, last_line)
+                return (999999999, overflow_text)
             avg = int(sum(grouped_mids[index])/len(grouped_mids[index]))
             angle = group_angles[index]
             # Set mean X start to find the x coordinate of the nearest line vertically in the filtered_lines array
@@ -179,7 +178,6 @@ def paper_gen(textFile, pageNumber, actually_overflow):
                     
                     draw2 = ImageDraw.Draw(image2)
                     draw2.text((0, 0), text=text, font=font, fill=settings.colors[seed] if settings.randomFontColors else color)
-                    last_line = text
                     # draw2.line((0, 0, text_width, 0), fill=(0, 255, 0), width=5)
                     image2 = image2.rotate(angle*1.1, expand=True)
                     px, py = (mean_x_start+random.randrange(int(mean_x_start*0.05), int(mean_x_start*0.1))), avg
@@ -191,24 +189,23 @@ def paper_gen(textFile, pageNumber, actually_overflow):
                 full_text = full_text.replace(text, "").strip(" ")
             index += 1
             
-        return (index, text, last_line)
+        return (index, text)
 
     actual_overflow = ""
-    last_line_written = ""
     for text in textFile:
         if index == 999999999:
             break
         elif text.startswith("RED: "):
             text = text.replace("RED: ", "").strip()
-            index, actual_overflow, last_line_written = write_text(text, index, (55, 52, 255))
+            index, actual_overflow  = write_text(text, index, (46, 31, 135))
         elif text.startswith("BLUE: "):
             text = text.replace("BLUE: ", "").strip()
-            index, actual_overflow, last_line_written = write_text(text, index, (255, 33, 33))
+            index, actual_overflow = write_text(text, index, (150, 42, 34))
         elif text.startswith("SUMMARY: "):
             text = text.replace("SUMMARY: ", "").strip()
-            index, actual_overflow, last_line_written = write_text(text, index, (0, 0, 0, 240))
+            index, actual_overflow = write_text(text, index, (40, 40, 40))
         elif text != "":
-            index, actual_overflow, last_line_written = write_text(text, index, (0, 0, 0, 240))
+            index, actual_overflow = write_text(text, index, (40, 40, 40))
         
     opencv_image = np.array(pil_image)
     final_image = cv2.GaussianBlur(opencv_image, (3, 3), 0)
@@ -219,8 +216,6 @@ def paper_gen(textFile, pageNumber, actually_overflow):
     # Display the result
     cv2.imwrite(f'./output/output{pageNumber}.png', final_image)
     print("Wrote page", pageNumber)
-    
-    #print(start, textFile[start-1], actual_overflow.strip())
 
     newTextFile = textFile[start:]
     if len(newTextFile) == 0:
